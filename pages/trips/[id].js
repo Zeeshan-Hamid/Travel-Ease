@@ -199,9 +199,9 @@ export default function TripDetail({ trip }) {
                 className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium transition"
                 onClick={() => {
                   if (session) {
-                    alert('Booking functionality will be implemented in the next phase!');
+                    router.push(`/trips/book/${trip._id}`);
                   } else {
-                    router.push('/auth/login?redirect=/trips/' + trip._id);
+                    router.push(`/auth/login?callbackUrl=${encodeURIComponent(`/trips/${trip._id}`)}`);
                   }
                 }}
               >

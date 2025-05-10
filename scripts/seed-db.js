@@ -3,7 +3,7 @@ import { MongoClient } from 'mongodb';
 // Properly encode the password with special characters
 const username = 'zeeshanhamid17';
 const password = encodeURIComponent('$zee03052002');
-const MONGODB_URI = process.env.MONGODB_URI
+const MONGODB_URI = `mongodb+srv://${username}:${password}@cluster0.aqabk0o.mongodb.net/?retryWrites=true&w=majority`;
 const MONGODB_DB = "travel_booking";
 
 async function seedDatabase() {

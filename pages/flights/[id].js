@@ -226,9 +226,9 @@ export default function FlightDetail({ flight }) {
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition"
                 onClick={() => {
                   if (session) {
-                    alert('Booking functionality will be implemented in the next phase!');
+                    router.push(`/flights/book/${flight._id}`);
                   } else {
-                    router.push('/auth/login?redirect=/flights/' + flight._id);
+                    router.push(`/auth/login?callbackUrl=${encodeURIComponent(`/flights/${flight._id}`)}`);
                   }
                 }}
               >

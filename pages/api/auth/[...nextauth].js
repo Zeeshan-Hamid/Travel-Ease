@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoClient } from "mongodb";
 import bcrypt from "bcryptjs";
 
-export default NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -71,4 +71,6 @@ export default NextAuth({
     signUp: "/auth/signup",
   },
   debug: process.env.NODE_ENV === 'development',
-}); 
+};
+
+export default NextAuth(authOptions); 

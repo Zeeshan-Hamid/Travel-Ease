@@ -204,9 +204,9 @@ export default function BusDetail({ bus }) {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition"
                 onClick={() => {
                   if (session) {
-                    alert('Booking functionality will be implemented in the next phase!');
+                    router.push(`/buses/book/${bus._id}`);
                   } else {
-                    router.push('/auth/login?redirect=/buses/' + bus._id);
+                    router.push(`/auth/login?callbackUrl=${encodeURIComponent(`/buses/${bus._id}`)}`);
                   }
                 }}
               >
