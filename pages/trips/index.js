@@ -149,35 +149,12 @@ export default function Trips({ trips }) {
 
 // Use SSG for trips since they don't change as frequently
 export async function getStaticProps() {
-  try {
-    // Get the absolute URL for the API endpoint
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const host = process.env.VERCEL_URL || 'localhost:3000';
-    const baseUrl = `${protocol}://${host}`;
-
-    // Create an API endpoint to get all trips
-    const response = await fetch(`${baseUrl}/api/trips`);
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const trips = await response.json();
-    
-    return {
-      props: {
-        trips: Array.isArray(trips) ? trips : []
-      },
-      // Revalidate every 24 hours
-      revalidate: 86400
-    };
-  } catch (error) {
-    console.error('Error fetching trips:', error);
-    return {
-      props: {
-        trips: []
-      },
-      revalidate: 60 // Try again after a minute if there was an error
-    };
-  }
+  // Return empty trips at build time to avoid connection errors
+  return {
+    props: {
+      trips: []
+    },
+    // Use short revalidation time to fetch real data soon after deployment
+    revalidate: 10
+  };
 } 

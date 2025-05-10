@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const userId = session.user.id;
   const mongodbUri = "mongodb+srv://zeeshanhamid17:%24zee03052002@cluster0.aqabk0o.mongodb.net/";
   const client = await MongoClient.connect(mongodbUri);
-  const db = client.db("auth_db");
+  const db = client.db("travel_booking");
   const usersCollection = db.collection("users");
 
   // GET request to fetch user bookings

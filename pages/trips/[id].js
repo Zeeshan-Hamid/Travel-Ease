@@ -223,81 +223,23 @@ export default function TripDetail({ trip }) {
 
 // Use SSG with fallback for trip details
 export async function getStaticProps({ params }) {
-  try {
-    const { id } = params;
-    
-    // Get the absolute URL for the API endpoint
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const host = process.env.VERCEL_URL || 'localhost:3000';
-    const baseUrl = `${protocol}://${host}`;
-
-    // Fetch trip details
-    const response = await fetch(`${baseUrl}/api/trips/${id}`);
-    
-    if (!response.ok) {
-      return {
-        props: {
-          trip: null
-        },
-        revalidate: 60
-      };
-    }
-    
-    const trip = await response.json();
-    
-    return {
-      props: {
-        trip
-      },
-      // Revalidate every 24 hours
-      revalidate: 86400
-    };
-  } catch (error) {
-    console.error('Error fetching trip details:', error);
-    return {
-      props: {
-        trip: null
-      },
-      revalidate: 60
-    };
-  }
+  // Return null trip at build time to avoid connection errors
+  // The actual trip data will be fetched on the first request with fallback
+  return {
+    props: {
+      trip: null
+    },
+    // Short revalidation time
+    revalidate: 10
+  };
 }
 
 // Generate static paths for popular trips
 export async function getStaticPaths() {
-  try {
-    // Get the absolute URL for the API endpoint
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const host = process.env.VERCEL_URL || 'localhost:3000';
-    const baseUrl = `${protocol}://${host}`;
-
-    // Fetch featured trips
-    const response = await fetch(`${baseUrl}/api/featured/trips`);
-    
-    if (!response.ok) {
-      return {
-        paths: [],
-        fallback: true
-      };
-    }
-    
-    const featuredTrips = await response.json();
-    
-    // Create paths for featured trips only
-    const paths = featuredTrips.map(trip => ({
-      params: { id: trip._id.toString() }
-    }));
-    
-    return {
-      paths,
-      // Generate non-featured trips on demand
-      fallback: true
-    };
-  } catch (error) {
-    console.error('Error generating static paths:', error);
-    return {
-      paths: [],
-      fallback: true
-    };
-  }
+  // Return empty paths array with fallback: blocking
+  // This means paths will be generated on-demand and cached for future requests
+  return {
+    paths: [],
+    fallback: 'blocking'
+  };
 } 

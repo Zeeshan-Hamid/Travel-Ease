@@ -207,7 +207,7 @@ export default function Home({ featuredContent = { flights: [], buses: [], trips
                         <span className="text-gray-500">{tab.label}</span>
                       </div>
                       {item.image && (
-                        <Image
+          <Image
                           src={item.image}
                           alt={item.name || `${item.from} to ${item.to}`}
                           fill
