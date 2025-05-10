@@ -52,9 +52,7 @@ export default function Navbar() {
           <Link href="/trips" className={`text-gray-700 hover:text-indigo-600 font-medium px-4 py-2 ${router.pathname.startsWith('/trips') ? 'text-indigo-600' : ''}`}>
             Trips
           </Link>
-          <Link href="/support" className={`text-gray-700 hover:text-indigo-600 font-medium px-4 py-2 ${router.pathname.startsWith('/support') ? 'text-indigo-600' : ''}`}>
-            Support
-          </Link>
+         
         </div>
 
         {/* User Auth */}

@@ -36,6 +36,7 @@ export default async function handler(req, res) {
       name,
       email,
       password: hashedPassword,
+      bookings: [],
       createdAt: new Date()
     });
 

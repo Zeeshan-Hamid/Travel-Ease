@@ -223,15 +223,42 @@ export default function TripDetail({ trip }) {
 
 // Use SSG with fallback for trip details
 export async function getStaticProps({ params }) {
-  // Return null trip at build time to avoid connection errors
-  // The actual trip data will be fetched on the first request with fallback
-  return {
-    props: {
-      trip: null
-    },
-    // Short revalidation time
-    revalidate: 10
-  };
+  try {
+    // Use relative URL for API during build
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const host = process.env.VERCEL_URL || 'localhost:3000';
+    const baseUrl = `${protocol}://${host}`;
+    
+    // Fetch trip data from API
+    const res = await fetch(`${baseUrl}/api/trips/${params.id}`);
+    
+    // If trip not found, return null
+    if (!res.ok) {
+      return { 
+        props: { trip: null },
+        revalidate: 10
+      };
+    }
+    
+    // Parse trip data
+    const trip = await res.json();
+    
+    return {
+      props: {
+        trip
+      },
+      revalidate: 10
+    };
+  } catch (error) {
+    console.error("Error fetching trip:", error);
+    // If fetch fails, return null trip 
+    return {
+      props: {
+        trip: null
+      },
+      revalidate: 10
+    };
+  }
 }
 
 // Generate static paths for popular trips

@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const userId = session.user.id;
   const mongodbUri = "mongodb+srv://zeeshanhamid17:%24zee03052002@cluster0.aqabk0o.mongodb.net/";
   const client = await MongoClient.connect(mongodbUri);
-  const db = client.db("travel_booking");
+  const db = client.db("auth_db");
   const usersCollection = db.collection("users");
 
   // GET request to fetch user bookings
@@ -82,6 +82,21 @@ export default async function handler(req, res) {
         totalPrice
       };
       
+      // Check if the user has a bookings array, create it if it doesn't exist
+      const user = await usersCollection.findOne(
+        { _id: new ObjectId(userId) },
+        { projection: { bookings: 1 } }
+      );
+      
+      if (!user || !user.bookings) {
+        // Initialize bookings array if it doesn't exist
+        await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $set: { bookings: [] } }
+        );
+      }
+      
+      // Now push the new booking
       await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
         { $push: { bookings: newBooking } }

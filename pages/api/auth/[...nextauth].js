@@ -23,7 +23,7 @@ export const authOptions = {
           
           if (!user) {
             client.close();
-            throw new Error("No user found with this email");
+            throw new Error("Wrong email or password");
           }
           
           const isValid = await bcrypt.compare(credentials.password, user.password);

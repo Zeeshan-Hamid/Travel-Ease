@@ -246,6 +246,24 @@ export async function getServerSideProps(context) {
       { projection: { bookings: 1 } }
     );
 
+    // If user has no bookings or bookings field doesn't exist, initialize with empty array
+    if (!user || !user.bookings) {
+      // If this is the first time viewing bookings, ensure the user has a bookings array for future use
+      if (user && !user.bookings) {
+        await usersCollection.updateOne(
+          { _id: new ObjectId(session.user.id) },
+          { $set: { bookings: [] } }
+        );
+      }
+      
+      client.close();
+      return {
+        props: {
+          initialBookings: []
+        }
+      };
+    }
+
     const bookings = user?.bookings || [];
     
     // Get the travel_booking database for detailed booking info
