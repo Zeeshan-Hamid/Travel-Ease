@@ -1,115 +1,597 @@
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/router";
+import Link from "next/link";
 import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import { useState } from "react";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+// Tabs data
+const TABS = [
+  { id: 'flights', label: 'Flights', color: 'pink' },
+  { id: 'buses', label: 'Buses', color: 'blue' },
+  { id: 'trips', label: 'Trips', color: 'green' }
+];
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+export default function Home({ featuredContent = { flights: [], buses: [], trips: [] } }) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const loading = status === "loading";
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('flights');
+  
+  // Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [departureCity, setDepartureCity] = useState('');
+  const [destinationCity, setDestinationCity] = useState('');
+  const [date, setDate] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
 
-export default function Home() {
+  const handleSignOut = async () => {
+    await signOut({ redirect: false });
+    router.replace("/auth/login");
+  };
+
+  const handleSearch = async () => {
+    if (!departureCity && !destinationCity && !searchQuery && !date) {
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Construct search query
+      const query = searchQuery || `${departureCity} ${destinationCity}`.trim();
+      
+      // Build the URL with query parameters
+      let searchUrl = `/api/search?`;
+      const params = new URLSearchParams();
+      
+      if (query) {
+        params.append('query', query);
+      }
+      
+      if (date) {
+        params.append('date', date);
+      }
+      
+      params.append('type', activeTab);
+      
+      const response = await fetch(`/api/search?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+      
+      const results = await response.json();
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      // You might want to show an error message to the user here
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setDepartureCity('');
+    setDestinationCity('');
+    setDate('');
+    setSearchResults(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  // Get the content for the active tab
+  const activeContent = searchResults ? searchResults[activeTab] : featuredContent[activeTab] || [];
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              pages/index.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen flex flex-col">
+      {/* Navbar */}
+      <nav className="bg-white shadow-md py-4 px-4 md:px-8 fixed top-0 left-0 right-0 z-10">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center">
+            <Link href="/" className="text-2xl font-bold text-indigo-600">
+              TravelEase
+            </Link>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
+            <Link href="/" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+              Home
+            </Link>
+            <Link href="/flights" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+              Flights
+            </Link>
+            <Link href="/buses" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+              Buses
+            </Link>
+            <Link href="/trips" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+              Trips
+            </Link>
+            <Link href="/support" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+              Support
+            </Link>
+          </div>
+
+          {/* User Auth */}
+          <div className="hidden md:flex items-center">
+            {session ? (
+              <div className="relative">
+                <button 
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center space-x-2 focus:outline-none"
+                >
+                  <div className="w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center">
+                    <span className="text-indigo-700 font-medium">
+                      {session.user.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="text-gray-700 font-medium">{session.user.name}</span>
+                </button>
+                
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2">
+                    <Link href="/profile" className="block px-4 py-2 text-gray-700 hover:bg-indigo-50">
+                      My Profile
+                    </Link>
+                    <Link href="/bookings" className="block px-4 py-2 text-gray-700 hover:bg-indigo-50">
+                      My Bookings
+                    </Link>
+                    <button 
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link href="/auth/login" className="text-gray-700 hover:text-indigo-600 px-4 py-2 font-medium">
+                  Login
+                </Link>
+                <Link href="/auth/signup" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                  Sign Up
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden flex items-center">
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-gray-700 focus:outline-none"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {isMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+        {/* Mobile menu */}
+        {isMenuOpen && (
+          <div className="md:hidden mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-col space-y-2 pb-3">
+              <Link href="/" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+                Home
+              </Link>
+              <Link href="/flights" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+                Flights
+              </Link>
+              <Link href="/buses" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+                Buses
+              </Link>
+              <Link href="/trips" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+                Trips
+              </Link>
+              <Link href="/support" className="text-gray-700 hover:text-indigo-600 font-medium px-4 py-2">
+                Support
+              </Link>
+            </div>
+            
+            <div className="pt-4 border-t border-gray-200">
+              {session ? (
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2 px-4 py-2">
+                    <div className="w-8 h-8 rounded-full bg-indigo-200 flex items-center justify-center">
+                      <span className="text-indigo-700 font-medium">
+                        {session.user.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="text-gray-700 font-medium">{session.user.name}</span>
+                  </div>
+                  <Link href="/profile" className="text-gray-700 hover:bg-gray-100 px-4 py-2 block">
+                    My Profile
+                  </Link>
+                  <Link href="/bookings" className="text-gray-700 hover:bg-gray-100 px-4 py-2 block">
+                    My Bookings
+                  </Link>
+                  <button 
+                    onClick={handleSignOut}
+                    className="text-gray-700 hover:bg-gray-100 px-4 py-2 text-left"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col space-y-2 px-4 py-2">
+                  <Link href="/auth/login" className="text-gray-700 hover:text-indigo-600 py-2 font-medium">
+                    Login
+                  </Link>
+                  <Link href="/auth/signup" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition text-center">
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
+
+      {/* Hero Section with Search */}
+      <section className="relative bg-gradient-to-r from-indigo-600 to-indigo-800 text-white py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Find Your Perfect Journey</h1>
+            <p className="text-xl text-indigo-100">Search across flights, buses, and travel packages</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            {/* Tabs */}
+            <div className="flex justify-center mb-6">
+              <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
+                {TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setSearchResults(null);
+                    }}
+                    className={`px-6 py-2 rounded-lg font-medium transition ${
+                      activeTab === tab.id
+                        ? 'bg-white text-indigo-600 shadow-sm'
+                        : 'text-gray-600 hover:text-indigo-600'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search Form */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <input 
+                type="text" 
+                placeholder="Departure city/airport" 
+                className="w-full text-black py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                value={departureCity}
+                onChange={(e) => setDepartureCity(e.target.value)}
+              />
+              <input 
+                type="text" 
+                placeholder="Destination city/airport" 
+                className="w-full text-black py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                value={destinationCity}
+                onChange={(e) => setDestinationCity(e.target.value)}
+              />
+              <input 
+                type="date" 
+                className="w-full text-black py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]} // Prevent selecting past dates
+              />
+              <button 
+                className={`w-full ${isSearching ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white py-3 rounded-lg font-medium transition flex items-center justify-center`}
+                onClick={handleSearch}
+                disabled={isSearching}
+              >
+                {isSearching ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                ) : (
+                  'Search'
+                )}
+              </button>
+            </div>
+            
+            {/* Quick Search */}
+            <div className="mt-4">
+              <input
+                type="text"
+                placeholder="Or quickly search by name, destination, company..."
+                className="w-full text-black py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+
+            {searchResults && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearSearch}
+                  className="text-sm text-gray-500 hover:text-indigo-600"
+                >
+                  Clear Search
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Search Results or Featured Content */}
+      <section className="py-16 px-6 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-10 text-center">
+            {searchResults ? 'Search Results' : 'Featured Offers'}
+          </h2>
+          
+          {/* Content Grid */}
+          {activeContent.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {activeContent.map((item, index) => {
+                const tab = TABS.find(t => t.id === activeTab);
+                return (
+                  <div 
+                    key={item._id || index} 
+                    className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition cursor-pointer"
+                    onClick={() => router.push(`/${activeTab}/${item._id}`)}
+                  >
+                    <div className="relative h-48">
+                      <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+                        <span className="text-gray-500">{tab.label}</span>
+                      </div>
+                      {item.image && (
+                        <Image
+                          src={item.image}
+                          alt={item.name || `${item.from} to ${item.to}`}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="object-cover"
+                          priority={index < 3}
+                        />
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <span className={`bg-${tab.color}-100 text-${tab.color}-600 px-2 py-1 rounded-full text-xs`}>
+                          {tab.label}
+                        </span>
+                        <span className="text-indigo-600 font-medium text-xl">
+                          ${item.price}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 my-2">
+                        {activeTab === 'trips' ? item.name : `${item.from} → ${item.to}`}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {new Date(item.departureDate || item.startDate).toLocaleDateString()} • {item.duration}
+                      </p>
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <svg
+                                key={i}
+                                className={`w-4 h-4 ${i < Math.floor(item.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
+                          </div>
+                          <span className="ml-1 text-sm text-gray-500">
+                            {item.rating.toFixed(1)}
+                          </span>
+                        </div>
+                        <button className="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition">
+                          Book Now
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-gray-500">
+                {searchResults 
+                  ? `No ${activeTab} found matching your search criteria.`
+                  : `No featured ${activeTab} available at the moment.`
+                }
+              </p>
+              <p className="mt-2 text-gray-400 text-sm">
+                {searchResults 
+                  ? 'Try adjusting your search terms or explore other categories.'
+                  : 'Check back later for exciting offers!'
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20 bg-gray-50 px-6">
+        <h2 className="text-2xl font-semibold text-center text-gray-800 mb-12">Traveler Reviews</h2>
+        
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Testimonial 1 */}
+          <div className="bg-white p-6 rounded-2xl shadow-md">
+            <p className="italic text-gray-600 mb-4">
+              "The booking process was incredibly smooth. I found a great deal on a flight to Dubai and the whole experience was hassle-free."
+            </p>
+            <div className="flex items-center">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                <span className="text-indigo-600 font-medium">A</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Ahmed K.</p>
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Testimonial 2 */}
+          <div className="bg-white p-6 rounded-2xl shadow-md">
+            <p className="italic text-gray-600 mb-4">
+              "I've been using this service for all my bus travels between cities. The prices are competitive and the buses are always comfortable."
+            </p>
+            <div className="flex items-center">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                <span className="text-indigo-600 font-medium">S</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Sara M.</p>
+                <div className="flex">
+                  {[...Array(4)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                  ))}
+                  <svg className="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Testimonial 3 */}
+          <div className="bg-white p-6 rounded-2xl shadow-md">
+            <p className="italic text-gray-600 mb-4">
+              "The customer service is exceptional. When my flight was delayed, they helped me rebook without any additional fees. Highly recommend!"
+            </p>
+            <div className="flex items-center">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                <span className="text-indigo-600 font-medium">F</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Fahad R.</p>
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 py-10 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <h3 className="text-gray-800 font-semibold mb-4">Company</h3>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">About</a></li>
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">Careers</a></li>
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">Blog</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="text-gray-800 font-semibold mb-4">Support</h3>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">Help Center</a></li>
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">FAQs</a></li>
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">Contact</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 className="text-gray-800 font-semibold mb-4">Legal</h3>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">Terms</a></li>
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">Privacy</a></li>
+              <li><a href="#" className="text-gray-600 hover:text-indigo-600">Cookies</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="text-center mt-8 text-gray-400 text-xs">
+          © 2025 TravelEase. All rights reserved.
+        </div>
       </footer>
     </div>
   );
+}
+
+// Implement SSR
+export async function getServerSideProps() {
+  try {
+    // Get the absolute URL for the API endpoint
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const host = process.env.VERCEL_URL || 'localhost:3000';
+    const baseUrl = `${protocol}://${host}`;
+
+    // First test the connection
+    const testResponse = await fetch(`${baseUrl}/api/test-connection`);
+    if (!testResponse.ok) {
+      console.error('MongoDB connection test failed');
+      throw new Error('Database connection failed');
+    }
+
+    // Fetch featured content
+    const response = await fetch(`${baseUrl}/api/featured/all`);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const featuredContent = await response.json();
+    
+    // Ensure the response has the expected structure
+    const safeContent = {
+      flights: Array.isArray(featuredContent.flights) ? featuredContent.flights : [],
+      buses: Array.isArray(featuredContent.buses) ? featuredContent.buses : [],
+      trips: Array.isArray(featuredContent.trips) ? featuredContent.trips : []
+    };
+
+    return {
+      props: {
+        featuredContent: safeContent
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching featured content:', error);
+    // Return empty arrays for each category to avoid undefined errors
+    return {
+      props: {
+        featuredContent: {
+          flights: [],
+          buses: [],
+          trips: []
+        }
+      }
+    };
+  }
 }
