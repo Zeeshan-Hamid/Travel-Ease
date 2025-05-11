@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const userId = session.user.id;
   const mongodbUri = "mongodb+srv://zeeshanhamid17:%24zee03052002@cluster0.aqabk0o.mongodb.net/";
   const client = await MongoClient.connect(mongodbUri);
-  const db = client.db("auth_db");
+  const db = client.db("travel_booking");
   const usersCollection = db.collection("users");
 
   // GET request to fetch user bookings
@@ -28,15 +28,13 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Get the travel_booking database for detailed booking info
-      const travelDb = client.db("travel_booking");
       const bookings = user.bookings || [];
       
       // Enhance bookings with item details
       const enhancedBookings = await Promise.all(
         bookings.map(async (booking) => {
           try {
-            const collection = travelDb.collection(booking.type + 's');
+            const collection = db.collection(booking.type + 's');
             const item = await collection.findOne({ _id: new ObjectId(booking.itemId) });
             
             return {

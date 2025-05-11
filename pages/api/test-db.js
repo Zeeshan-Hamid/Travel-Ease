@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const client = await MongoClient.connect(mongodbUri);
     console.log("MongoDB connection successful");
     
-    const db = client.db("auth_db");
+    const db = client.db("travel_booking");
     const collections = await db.listCollections().toArray();
     
     client.close();

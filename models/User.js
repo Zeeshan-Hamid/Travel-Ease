@@ -2,6 +2,10 @@ const User = {
   name: String,
   email: String,
   password: String,
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
   createdAt: Date,
   bookings: [
     {

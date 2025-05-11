@@ -52,7 +52,11 @@ export default function Navbar() {
           <Link href="/trips" className={`text-gray-700 hover:text-indigo-600 font-medium px-4 py-2 ${router.pathname.startsWith('/trips') ? 'text-indigo-600' : ''}`}>
             Trips
           </Link>
-         
+          {session?.user?.isAdmin && (
+            <Link href="/admin" className={`text-gray-700 hover:text-indigo-600 font-medium px-4 py-2 ${router.pathname.startsWith('/admin') ? 'text-indigo-600' : ''}`}>
+              Admin
+            </Link>
+          )}
         </div>
 
         {/* User Auth */}
@@ -79,6 +83,11 @@ export default function Navbar() {
                   <Link href="/profile/bookings" className="block px-4 py-2 text-gray-700 hover:bg-indigo-50">
                     My Bookings
                   </Link>
+                  {session.user.isAdmin && (
+                    <Link href="/admin" className="block px-4 py-2 text-gray-700 hover:bg-indigo-50">
+                      Admin Dashboard
+                    </Link>
+                  )}
                   <button 
                     onClick={handleSignOut}
                     className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-indigo-50"
@@ -133,7 +142,11 @@ export default function Navbar() {
             <Link href="/trips" className={`text-gray-700 hover:text-indigo-600 font-medium px-4 py-2 ${router.pathname.startsWith('/trips') ? 'text-indigo-600' : ''}`}>
               Trips
             </Link>
-            
+            {session?.user?.isAdmin && (
+              <Link href="/admin" className={`text-gray-700 hover:text-indigo-600 font-medium px-4 py-2 ${router.pathname.startsWith('/admin') ? 'text-indigo-600' : ''}`}>
+                Admin
+              </Link>
+            )}
           </div>
           
           <div className="pt-4 border-t border-gray-200">
@@ -153,6 +166,11 @@ export default function Navbar() {
                 <Link href="/profile/bookings" className="text-gray-700 hover:bg-gray-100 px-4 py-2 block">
                   My Bookings
                 </Link>
+                {session.user.isAdmin && (
+                  <Link href="/admin" className="text-gray-700 hover:bg-gray-100 px-4 py-2 block">
+                    Admin Dashboard
+                  </Link>
+                )}
                 <button 
                   onClick={handleSignOut}
                   className="text-gray-700 hover:bg-gray-100 px-4 py-2 text-left"

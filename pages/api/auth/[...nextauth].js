@@ -16,7 +16,7 @@ export const authOptions = {
           // Use the connection string directly with proper escaping
           const mongodbUri = "mongodb+srv://zeeshanhamid17:%24zee03052002@cluster0.aqabk0o.mongodb.net/";
           const client = await MongoClient.connect(mongodbUri);
-          const db = client.db("auth_db");
+          const db = client.db("travel_booking");
           const usersCollection = db.collection("users");
           
           const user = await usersCollection.findOne({ email: credentials.email });
@@ -38,7 +38,8 @@ export const authOptions = {
           return { 
             id: user._id.toString(),
             name: user.name,
-            email: user.email
+            email: user.email,
+            isAdmin: user.isAdmin || false
           };
         } catch (error) {
           console.error("NextAuth error:", error);
@@ -55,12 +56,14 @@ export const authOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.isAdmin = user.isAdmin;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id;
+        session.user.isAdmin = token.isAdmin;
       }
       return session;
     },

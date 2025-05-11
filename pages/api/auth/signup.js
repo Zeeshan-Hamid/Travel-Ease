@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     // Use the connection string directly with proper escaping
     const mongodbUri = "mongodb+srv://zeeshanhamid17:%24zee03052002@cluster0.aqabk0o.mongodb.net/";
     const client = await MongoClient.connect(mongodbUri);
-    const db = client.db("auth_db"); // Specify a database name
+    const db = client.db("travel_booking"); // Use travel_booking database
     const usersCollection = db.collection("users");
 
     const existingUser = await usersCollection.findOne({ email });
